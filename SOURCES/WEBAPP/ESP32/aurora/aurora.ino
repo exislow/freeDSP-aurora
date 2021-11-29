@@ -315,6 +315,10 @@ void setup() {
     Serial.println(xPortGetFreeHeapSize());
 #endif
 
+    // ---- CUSTOM -----
+    pinMode(TRIGGER_STATE_IO, OUTPUT);
+    digitalWrite(TRIGGER_STATE_IO, LOW);
+
     //----------------------------------------------------------------------------
     //--- Init Rotary Encoder Handling
     //----------------------------------------------------------------------------
@@ -523,6 +527,9 @@ void setup() {
     Serial.println(xPortGetFreeHeapSize());
 #endif
 
+    // ---- CUSTOM -----
+    digitalWrite(TRIGGER_STATE_IO, HIGH);
+
     Serial.println(F("Ready"));
 }
 
@@ -629,7 +636,7 @@ void loop() {
 #if HAVE_IRRECEIVER
     decode_results irResults;
     if (irReceiver.decode(&irResults)) {
-        // Serial.println(irResults.value, HEX);
+        Serial.println(irResults.value, HEX);
 
         // If the IR repeat code is sent (the user is long-pressing a button), the previous IR code will be written
         // to the current IR value.
@@ -678,6 +685,16 @@ void loop() {
             softUnmuteDAC();
 
             needUpdateUI = true;
+        // ----------- CUSTOM ----------------
+        } else if (irResults.value == APPLE_REMOTE_PLAY_DOWN) {
+            myDisplay.displayOn();
+            digitalWrite(TRIGGER_STATE_IO, HIGH);
+            softUnmuteDAC();
+        } else if (irResults.value == APPLE_REMOTE_MENU) {
+            digitalWrite(TRIGGER_STATE_IO, LOW);
+            softMuteDAC();
+            myDisplay.displayOff();
+            displayOff = true;
         }
 
         irPrevious = irResults.value;

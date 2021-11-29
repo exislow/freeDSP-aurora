@@ -10,6 +10,9 @@ public:
   virtual void drawBootScreen(void) = 0;
   virtual void drawUI(const char* plugin, const char* ip, const char* preset, float vol, int editMode = 0) = 0;
   virtual void drawSwitchingPreset(void) = 0;
+    // ----- CUSTOM -----
+    virtual void displayOff(void) = 0;
+    virtual void displayOn(void) = 0;
 };
 
 #endif

@@ -30,4 +30,7 @@
 #define DEBUG_PRINT (1)
 #define ERROR_PRINT (1)
 
+// ------- CUSTOM -------------
+#define TRIGGER_STATE_IO 26
+
 #endif

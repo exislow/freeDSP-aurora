@@ -91,3 +91,14 @@ void OLED128x64_SH1106::drawSwitchingPreset( void )
 
   u8g2.sendBuffer();
 }
+
+// ----- CUSTOM -----
+void OLED128x64_SH1106::displayOff( void )
+{
+    u8g2.setPowerSave(1);
+}
+
+void OLED128x64_SH1106::displayOn( void )
+{
+    u8g2.setPowerSave(0);
+}
