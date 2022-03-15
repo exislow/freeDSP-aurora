@@ -10,3 +10,7 @@ OLED128x64_SSD1309 SSD1309;
 bool haveDisplay = true;
 bool needUpdateUI = false;
 int editMode = 0;
+
+// ---- CUSTOM ------
+bool displayOff = false;
+

@@ -125,3 +125,14 @@ void OLED128x64_SSD1309::drawSwitchingPreset(void)
 
   u8g2_ssd1309.sendBuffer();
 }
+
+// ----- CUSTOM -----
+void OLED128x64_SSD1309::displayOff( void )
+{
+    u8g2_ssd1309.setPowerSave(1);
+}
+
+void OLED128x64_SSD1309::displayOn( void )
+{
+    u8g2_ssd1309.setPowerSave(0);
+}

@@ -16,6 +16,9 @@ public:
   virtual void drawBootScreen(void);
   virtual void drawUI(const char* plugin, const char* ip, const char* preset, float vol, int editMode = 0);
   virtual void drawSwitchingPreset(void);
+    // ----- CUSTOM -----
+    void displayOff( void );
+    void displayOn( void );
 
 private:
   
