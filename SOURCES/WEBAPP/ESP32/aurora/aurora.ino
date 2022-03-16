@@ -660,6 +660,14 @@ void loop() {
   decode_results irResults;
   if( irReceiver.decode( &irResults ) )
   {
+      // Serial.println(irResults.value, HEX);
+
+      // If the IR repeat code is sent (the user is long-pressing a button), the previous IR code will be written
+      // to the current IR value.
+      if (irResults.value == REMOTE_REPEAT_CODE) {
+          irResults.value = irPrevious;
+      }
+
     if( irResults.value == APPLE_REMOTE_UP )
     {
       increase_volume();
@@ -694,6 +702,8 @@ void loop() {
             myDisplay.displayOff();
             displayOff = true;
         }
+
+      //Serial.println(irResults.value, HEX);
 
         irPrevious = irResults.value;
         irReceiver.resume();
