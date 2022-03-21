@@ -760,11 +760,11 @@ void loop() {
         needUpdateUI = true;
       }
       // ----------- CUSTOM ----------------
-      else if (irResults.value == APPLE_REMOTE_PLAY_DOWN) {
+      else if ((irval == APPLE_A_REMOTE_PLAY_DOWN) || (irval == APPLE_B_REMOTE_PLAY_DOWN)) {
             myDisplay.displayOn();
             digitalWrite(TRIGGER_STATE_IO, HIGH);
             softUnmuteDAC();
-        } else if (irResults.value == APPLE_REMOTE_MENU) {
+        } else if ((irval == APPLE_A_REMOTE_MENU) || (irval == APPLE_B_REMOTE_MENU)) {
             digitalWrite(TRIGGER_STATE_IO, LOW);
             softMuteDAC();
             myDisplay.displayOff();
