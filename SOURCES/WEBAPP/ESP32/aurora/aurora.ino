@@ -760,7 +760,7 @@ void loop() {
         needUpdateUI = true;
       }
       // ----------- CUSTOM ----------------
-        } else if (irResults.value == APPLE_REMOTE_PLAY_DOWN) {
+      else if (irResults.value == APPLE_REMOTE_PLAY_DOWN) {
             myDisplay.displayOn();
             digitalWrite(TRIGGER_STATE_IO, HIGH);
             softUnmuteDAC();
