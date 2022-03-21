@@ -12,15 +12,11 @@
 #include "AK5558.h"
 
 #if HAVE_ROTARYENCODER
-
 #include "rotaryencoder.h"
-
 #endif
 
 #if HAVE_IRRECEIVER
-
 #include <IRremote.h>
-
 #endif
 
 #include "config.h"
@@ -75,98 +71,111 @@ long int lastREsw = 0;
 //
 //------------------------------------------------------------------------------
 #if HAVE_IRRECEIVER
-IRrecv irReceiver(IR_RECEIVER_PIN);
+IRrecv irReceiver( IR_RECEIVER_PIN );
 unsigned int irPrevious = 0x0;
 #endif
 
 //==============================================================================
 /*! Uploads the firmware from ESP32 SPI flash to DSP.
  */
-void uploadDspFirmware(void) {
-    Serial.print(F("Init dsp......"));
+void uploadDspFirmware( void )
+{
+  Serial.print(F("Init dsp......"));
 
-    if (!SPIFFS.exists(F("/dsp.fw"))) {
-        Serial.println(F("File does not exist yet"));
-        return;
-    }
+  if(!SPIFFS.exists(F("/dsp.fw")))
+  {
+    Serial.println(F("File does not exist yet"));
+    return;
+  }
 
-    fileDspProgram = SPIFFS.open(F("/dsp.fw"));
+  fileDspProgram = SPIFFS.open(F("/dsp.fw"));
 
-    uint32_t numBytesToRead = 0;
-    byte byteReadMSB;
-    byte byteReadLSB;
-    uint16_t regaddr;
+  uint32_t numBytesToRead = 0;
+  byte byteReadMSB;
+  byte byteReadLSB;
+  uint16_t regaddr;
 
-    if (fileDspProgram) {
-        size_t len = fileDspProgram.size();
-        int cntr = 0;
-        while (cntr < len) {
-            uint8_t byteRead;
-            fileDspProgram.read(&byteRead, 1);
-            numBytesToRead = (numBytesToRead << 8) + (uint32_t) byteRead;
-            fileDspProgram.read(&byteRead, 1);
-            numBytesToRead = (numBytesToRead << 8) + (uint32_t) byteRead;
-            fileDspProgram.read(&byteRead, 1);
-            numBytesToRead = (numBytesToRead << 8) + (uint32_t) byteRead;
-            fileDspProgram.read(&byteRead, 1);
-            numBytesToRead = (numBytesToRead << 8) + (uint32_t) byteRead;
+  if(fileDspProgram)
+  {
+    size_t len = fileDspProgram.size();
+    int cntr = 0;
+    while(cntr < len)
+    {
+      uint8_t byteRead;
+      fileDspProgram.read( &byteRead, 1 );
+      numBytesToRead = (numBytesToRead << 8) + (uint32_t)byteRead;
+      fileDspProgram.read( &byteRead, 1 );
+      numBytesToRead = (numBytesToRead << 8) + (uint32_t)byteRead;
+      fileDspProgram.read( &byteRead, 1 );
+      numBytesToRead = (numBytesToRead << 8) + (uint32_t)byteRead;
+      fileDspProgram.read( &byteRead, 1 );
+      numBytesToRead = (numBytesToRead << 8) + (uint32_t)byteRead;
 
-            cntr += 4;
+      cntr += 4;
 
-            //------------------------------------------------------------------------
-            //--- Send register address and value
-            //------------------------------------------------------------------------
-            if (numBytesToRead > 0) {
-                fileDspProgram.read(&byteRead, 1);
-                regaddr = ((uint16_t) byteRead) << 8;
-                cntr++;
+      //------------------------------------------------------------------------
+      //--- Send register address and value
+      //------------------------------------------------------------------------
+      if(numBytesToRead > 0)
+      {
+        fileDspProgram.read(&byteRead, 1);
+        regaddr = ((uint16_t)byteRead) << 8;
+        cntr++;
 
-                fileDspProgram.read(&byteRead, 1);
-                regaddr += byteRead;
-                cntr++;
+        fileDspProgram.read(&byteRead, 1);
+        regaddr += byteRead;
+        cntr++;
 
-                if (numBytesToRead == 4) {
-                    fileDspProgram.read(&byteReadMSB, 1);
-                    cntr++;
-                    fileDspProgram.read(&byteReadLSB, 1);
-                    cntr++;
+        if(numBytesToRead == 4)
+        {
+          fileDspProgram.read(&byteReadMSB, 1);
+          cntr++;
+          fileDspProgram.read(&byteReadLSB, 1);
+          cntr++;
 
-                    if (regaddr == 0x0000)
-                        delay(500);
-                    else {
-                        ADAU1452_WRITE_REGISTER(regaddr, byteReadMSB, byteReadLSB);
-                        if (cntr % 4096 == 0)
-                            Serial.print(F("."));
-                    }
-                } else if (numBytesToRead > 4) {
-                    uint16_t addr = regaddr;
-                    byte val[4];
-
-                    for (uint32_t ii = 0; ii < numBytesToRead - 2; ii = ii + 4) {
-                        fileDspProgram.read(&(val[0]), 1);
-                        fileDspProgram.read(&(val[1]), 1);
-                        fileDspProgram.read(&(val[2]), 1);
-                        fileDspProgram.read(&(val[3]), 1);
-                        cntr += 4;
-                        ADAU1452_WRITE_BLOCK(addr, val, 4);
-                        if (cntr % 4096 == 0)
-                            Serial.print(F("."));
-                        addr++;
-                    }
-                } else {
-                    Serial.print(F("[ERROR] Bad number of bytes: "));
-                    Serial.println(numBytesToRead);
-                }
-            }
+          if(regaddr == 0x0000)
+            delay(500);
+          else
+          {
+            ADAU1452_WRITE_REGISTER(regaddr, byteReadMSB, byteReadLSB);
+            if(cntr % 4096 == 0)
+              Serial.print(F("."));
+          }
         }
-        int file_size = fileDspProgram.size();
+        else if(numBytesToRead > 4)
+        {
+          uint16_t addr = regaddr;
+          byte val[4];
 
-        fileDspProgram.close();
-        Serial.println(F("[OK]"));
-        Serial.print(F("File size: "));
-        Serial.println(file_size);
-    } else
-        Serial.println(F("\n[ERROR] Failed to open file dsp.fw"));
+          for(uint32_t ii = 0; ii < numBytesToRead - 2; ii = ii + 4)
+          {
+            fileDspProgram.read(&(val[0]), 1);
+            fileDspProgram.read(&(val[1]), 1);
+            fileDspProgram.read(&(val[2]), 1);
+            fileDspProgram.read(&(val[3]), 1);
+            cntr += 4;
+            ADAU1452_WRITE_BLOCK(addr, val, 4);
+            if(cntr % 4096 == 0)
+              Serial.print(F("."));
+            addr++;
+          }
+        }
+        else
+        {
+          Serial.print(F("[ERROR] Bad number of bytes: "));
+          Serial.println(numBytesToRead);
+        }
+      }
+    }
+    int file_size = fileDspProgram.size();
+
+    fileDspProgram.close();
+    Serial.println(F("[OK]"));
+    Serial.print(F("File size: "));
+    Serial.println(file_size);
+  }
+  else
+    Serial.println(F("\n[ERROR] Failed to open file dsp.fw"));
 }
 
 #if HAVE_DISPLAY
@@ -174,115 +183,136 @@ void uploadDspFirmware(void) {
 /*! Updates the user interface on the display
  *
  */
-void updateUI(void) {
-    if (haveDisplay) {
-        String ip;
-        if (WiFi.status() != WL_CONNECTED)
-            ip = "Not Connected";
-        else
-            ip = WiFi.localIP().toString();
+void updateUI( void )
+{
+  if(haveDisplay)
+  {
+    String ip;
+    if( WiFi.status() != WL_CONNECTED )
+      ip = "Not Connected";
+    else
+      ip = WiFi.localIP().toString();
 
     if( (editMode == 0) || (editMode == 1) || (editMode == 2) )
     {
-      myDisplay.drawUI(currentPlugInName.c_str(), ip.c_str(), presetNames[currentPreset].c_str(), masterVolume.val, editMode);
+      myDisplay.drawUI(currentPlugInName.c_str(), ip.c_str(), currentPreset, masterVolume.val, editMode);
     }
 
-    }
+  }
 }
-
 #endif
 
 //==============================================================================
 /*! Wifi connection task
  *
  */
-void myWiFiTask(void *pvParameters) {
-    wl_status_t state;
-    bool firstConnectAttempt = true;
-    bool myWiFiFirstConnect = true;
-    int cntrAuthFailure = 0;
-    IPAddress ip(192, 168, 5, 1);
-    IPAddress subnet(255, 255, 255, 0);
+void myWiFiTask(void *pvParameters)
+{
+  wl_status_t state;
+  bool firstConnectAttempt = true;
+  bool myWiFiFirstConnect = true;
+  int cntrAuthFailure = 0;
+  IPAddress ip(192, 168, 5, 1);
+  IPAddress subnet(255, 255, 255, 0);
 
-    WiFi.mode(WIFI_AP_STA);
-    WiFi.setHostname("freeDSP-aurora");
-    // Start access point
-    if (Settings.pwdap.length() > 0) {
-        Serial.print(F("AP password protected "));
-        Serial.println(Settings.apname);
-        WiFi.softAP(Settings.apname.c_str(), Settings.pwdap.c_str());
-    } else {
-        Serial.print(F("AP open: "));
-        Serial.println(Settings.apname);
-        WiFi.softAP(Settings.apname.c_str());
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.setHostname(AP_HOSTNAME);
+  // Start access point
+  if( Settings.pwdap.length() > 0 )
+  {
+    Serial.print(F("AP password protected "));
+    Serial.println(Settings.apname);
+    WiFi.softAP(Settings.apname.c_str(), Settings.pwdap.c_str());
+  }
+  else
+  {
+    Serial.print(F("AP open: "));
+    Serial.println(Settings.apname);
+    WiFi.softAP(Settings.apname.c_str());
+  }
+  delay(100);
+
+  if(!WiFi.softAPConfig(ip, ip, subnet))
+    Serial.println(F("AP Config Failed"));
+
+  // Start server
+  server.begin();
+
+  while(true)
+  {
+    if((Settings.ssid.length() > 0) &&  (cntrAuthFailure < 10))
+    {
+      state = WiFi.status();
+      if(state != WL_CONNECTED)
+      {
+        //if (state == WL_NO_SHIELD)
+        if(firstConnectAttempt)
+        {
+          firstConnectAttempt = false;
+          Serial.print(F("Connecting to "));
+          Serial.println(Settings.ssid.c_str());
+          WiFi.begin(Settings.ssid.c_str(), Settings.password.c_str());
+          cntrAuthFailure++;
+        }
+        else if(state == WL_IDLE_STATUS)
+        {
+          Serial.println(F("Idle"));
+        }
+        else if(state == WL_NO_SSID_AVAIL)
+        {
+          Serial.println(F("No SSID available"));
+        }
+        else if(state == WL_CONNECTION_LOST)
+        {
+          Serial.println(F("WiFi connection lost"));
+          WiFi.disconnect(true);
+          cntrAuthFailure++;
+        }
+        // else if( state == WL_SCAN_COMPLETED )
+        else if(state == WL_CONNECT_FAILED)
+        {
+          Serial.println(F("WiFi connection failed"));
+          WiFi.disconnect(true);
+          cntrAuthFailure++;
+        }
+        else if(state == WL_DISCONNECTED)
+        {
+          if(!myWiFiFirstConnect)
+          {
+            myWiFiFirstConnect = true;
+            Serial.println(F("WiFi disconnected"));
+          }
+          Serial.println(F("No Connection -> Wifi Reset"));
+          WiFi.persistent(false);
+          WiFi.disconnect();
+          WiFi.mode(WIFI_OFF);
+          WiFi.mode(WIFI_AP_STA);
+          delay(1000);
+          // WiFi.config(ip, gateway, subnet); // Only for fix IP needed
+          WiFi.begin(Settings.ssid.c_str(), Settings.password.c_str());
+          delay(3000);
+          cntrAuthFailure++;
+        }
+        vTaskDelay (250); // Check again in about 250ms
+      }
+      else // We have connection
+      {
+        if(myWiFiFirstConnect) // Report only once
+        {
+          myWiFiFirstConnect = false;
+          cntrAuthFailure = 0;
+          Serial.println(F("Connected"));
+          Serial.print(F("IP address: "));
+          Serial.println(WiFi.localIP());
+          Serial.println(WiFi.getHostname());
+          needUpdateUI = true;
+        }
+        vTaskDelay(5000); // Check again in about 5s
+      }
     }
-    delay(100);
-
-    if (!WiFi.softAPConfig(ip, ip, subnet))
-        Serial.println(F("AP Config Failed"));
-
-    // Start server
-    server.begin();
-
-    while (true) {
-        if ((Settings.ssid.length() > 0) && (cntrAuthFailure < 10)) {
-            state = WiFi.status();
-            if (state != WL_CONNECTED) {
-                //if (state == WL_NO_SHIELD)
-                if (firstConnectAttempt) {
-                    firstConnectAttempt = false;
-                    Serial.print(F("Connecting to "));
-                    Serial.println(Settings.ssid.c_str());
-                    WiFi.begin(Settings.ssid.c_str(), Settings.password.c_str());
-                    cntrAuthFailure++;
-                } else if (state == WL_IDLE_STATUS) {
-                    Serial.println(F("Idle"));
-                } else if (state == WL_NO_SSID_AVAIL) {
-                    Serial.println(F("No SSID available"));
-                } else if (state == WL_CONNECTION_LOST) {
-                    Serial.println(F("WiFi connection lost"));
-                    WiFi.disconnect(true);
-                    cntrAuthFailure++;
-                }
-                    // else if( state == WL_SCAN_COMPLETED )
-                else if (state == WL_CONNECT_FAILED) {
-                    Serial.println(F("WiFi connection failed"));
-                    WiFi.disconnect(true);
-                    cntrAuthFailure++;
-                } else if (state == WL_DISCONNECTED) {
-                    if (!myWiFiFirstConnect) {
-                        myWiFiFirstConnect = true;
-                        Serial.println(F("WiFi disconnected"));
-                    }
-                    Serial.println(F("No Connection -> Wifi Reset"));
-                    WiFi.persistent(false);
-                    WiFi.disconnect();
-                    WiFi.mode(WIFI_OFF);
-                    WiFi.mode(WIFI_AP_STA);
-                    delay(1000);
-                    // WiFi.config(ip, gateway, subnet); // Only for fix IP needed
-                    WiFi.begin(Settings.ssid.c_str(), Settings.password.c_str());
-                    delay(3000);
-                    cntrAuthFailure++;
-                }
-                vTaskDelay(250); // Check again in about 250ms
-            } else // We have connection
-            {
-                if (myWiFiFirstConnect) // Report only once
-                {
-                    myWiFiFirstConnect = false;
-                    cntrAuthFailure = 0;
-                    Serial.println(F("Connected"));
-                    Serial.print(F("IP address: "));
-                    Serial.println(WiFi.localIP());
-                    Serial.println(WiFi.getHostname());
-                    needUpdateUI = true;
-                }
-                vTaskDelay(5000); // Check again in about 5s
-            }
-        } else
-            vTaskDelay(5000);
-    }
+    else
+      vTaskDelay(5000);
+  }
 }
 
 
@@ -290,226 +320,238 @@ void myWiFiTask(void *pvParameters) {
 /*! Arduino Setup
  *
  */
-void setup() {
-    Serial.begin(115200);
-    Serial.println(F("AURORA Debug Log"));
-    Serial.println(VERSION_STR);
-#if DEBUG_PRINT
-    Serial.print("Heap: ");
-    Serial.println(xPortGetFreeHeapSize());
-#endif
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println(F("AURORA Debug Log"));
+  Serial.println( VERSION_STR );
+  #if DEBUG_PRINT
+  Serial.print("Heap: ");
+  Serial.println(xPortGetFreeHeapSize());
+  #endif
 
-    // ---- CUSTOM -----
-    pinMode(TRIGGER_STATE_IO, OUTPUT);
-    digitalWrite(TRIGGER_STATE_IO, LOW);
+  //----------------------------------------------------------------------------
+  //--- Init Rotary Encoder Handling
+  //----------------------------------------------------------------------------
+  #if HAVE_ROTARYENCODER
+  rotaryEncoder.init();
+  lastREsw = rotaryEncoder.getSwitchValue();
+  lastREval = rotaryEncoder.getRotationValue();
+  #endif
 
-    //----------------------------------------------------------------------------
-    //--- Init Rotary Encoder Handling
-    //----------------------------------------------------------------------------
-#if HAVE_ROTARYENCODER
-    rotaryEncoder.init();
-    lastREsw = rotaryEncoder.getSwitchValue();
-    lastREval = rotaryEncoder.getRotationValue();
-#endif
+  //----------------------------------------------------------------------------
+  //--- Is user pressing the rotary encoder switch during boot?
+  //----------------------------------------------------------------------------
+  //rotaryEncoder.init();
+  //pinMode( ROTARYENCODER_PINSW, INPUT_PULLUP );
+  if( !digitalRead( ROTARYENCODER_PINSW ) )
+    changeWifiState = true;
+  
+  //----------------------------------------------------------------------------
+  //--- Configure I2C
+  //----------------------------------------------------------------------------
+  Wire.begin( I2C_SDA_PIN, I2C_SCL_PIN );
+  Wire.setClock( 100000 );
+  delay( 100 );
 
-    //----------------------------------------------------------------------------
-    //--- Is user pressing the rotary encoder switch during boot?
-    //----------------------------------------------------------------------------
-    //rotaryEncoder.init();
-    //pinMode( ROTARYENCODER_PINSW, INPUT_PULLUP );
-    if (!digitalRead(ROTARYENCODER_PINSW))
-        changeWifiState = true;
-
-    //----------------------------------------------------------------------------
-    //--- Configure I2C
-    //----------------------------------------------------------------------------
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.setClock(100000);
-    delay(100);
-
-    //----------------------------------------------------------------------------
-    //--- Scan for I2C display connected?
-    //----------------------------------------------------------------------------
-#if HAVE_DISPLAY
-    haveDisplay = false;
-    Wire.beginTransmission(SSD1309_I2C_ADDR);
-    if (Wire.endTransmission(true) == 0) {
-        Serial.println(F("Detected SSD1309 display"));
-        SSD1309.setI2CAddress(SSD1309_I2C_ADDR << 1);
-        myDisplay.begin(&SSD1309);
-        haveDisplay = true;
+  //----------------------------------------------------------------------------
+  //--- Scan for I2C display connected?
+  //----------------------------------------------------------------------------
+  #if HAVE_DISPLAY
+  haveDisplay = false;
+  Wire.beginTransmission(SSD1309_I2C_ADDR);
+  if(Wire.endTransmission(true) == 0)
+  {
+    Serial.println(F("Detected SSD1309 display"));
+    SSD1309.setI2CAddress(SSD1309_I2C_ADDR<<1);
+    myDisplay.begin(&SSD1309);
+    haveDisplay = true;
+  }
+  if(!haveDisplay)
+  {
+    Wire.beginTransmission(SH1106_I2C_ADDR);
+    if(Wire.endTransmission(true) == 0)
+    {
+      Serial.println(F("Detected SH1106 display"));
+      myDisplay.begin(&SH1106);
+      haveDisplay = true;
     }
-    if (!haveDisplay) {
-        Wire.beginTransmission(SH1106_I2C_ADDR);
-        if (Wire.endTransmission(true) == 0) {
-            Serial.println(F("Detected SH1106 display"));
-            myDisplay.begin(&SH1106);
-            haveDisplay = true;
-        }
-    }
+  }
 
-    //----------------------------------------------------------------------------
-    //--- Init Display (if present)
-    //----------------------------------------------------------------------------
-    if (haveDisplay)
-        myDisplay.drawBootScreen();
-#endif
+  //----------------------------------------------------------------------------
+  //--- Init Display (if present)
+  //----------------------------------------------------------------------------
+  if(haveDisplay)
+    myDisplay.drawBootScreen();
+  #endif
 
-    // wait until everything is stable
-    // might be a bit to defensive
-    delay(2000);
+  // wait until everything is stable
+  // might be a bit to defensive
+  delay(2000);
 
-    //----------------------------------------------------------------------------
-    //--- Configure DAC
-    //----------------------------------------------------------------------------
-    Serial.println(F("Config DAC"));
-    configDAC();
+  //----------------------------------------------------------------------------
+  //--- Configure DAC
+  //----------------------------------------------------------------------------
+  Serial.println(F("Config DAC"));
+  configDAC();
 
-    //----------------------------------------------------------------------------
-    //--- Configure ADC
-    //----------------------------------------------------------------------------
-    Serial.println(F("Config ADC"));
-    configADC();
+  //----------------------------------------------------------------------------
+  //--- Configure ADC
+  //----------------------------------------------------------------------------
+  Serial.println(F("Config ADC"));
+  configADC();
 
-    //----------------------------------------------------------------------------
-    //--- Start SPIFFS
-    //----------------------------------------------------------------------------
-    if (!SPIFFS.begin(true)) {
-        Serial.println(F("An Error has occurred while mounting SPIFFS"));
-        return;
-    }
+  //----------------------------------------------------------------------------
+  //--- Start SPIFFS
+  //----------------------------------------------------------------------------
+  if(!SPIFFS.begin(true))
+  {
+    Serial.println(F("An Error has occurred while mounting SPIFFS"));
+    return;
+  }
 
-    //--- check for old stuff (version == 1.x.x)
-    String fileName = "/dspfw.hex";
-    if (SPIFFS.exists(fileName)) {
-        if (SPIFFS.remove(fileName))
-            Serial.println(fileName + " deleted.");
-        else
-            Serial.println("[ERROR] Deleting " + fileName);
-    }
-    fileName = "/dspparam.001";
-    if (SPIFFS.exists(fileName)) {
-        if (SPIFFS.remove(fileName))
-            Serial.println(fileName + " deleted.");
-        else
-            Serial.println("[ERROR] Deleting " + fileName);
-    }
-    fileName = "/dspparam.002";
-    if (SPIFFS.exists(fileName)) {
-        if (SPIFFS.remove(fileName))
-            Serial.println(fileName + F(" deleted."));
-        else
-            Serial.println("[ERROR] Deleting " + fileName);
-    }
-    fileName = "/dspparam.003";
-    if (SPIFFS.exists(fileName)) {
-        if (SPIFFS.remove(fileName))
-            Serial.println(fileName + " deleted.");
-        else
-            Serial.println("[ERROR] Deleting " + fileName);
-    }
-    fileName = "/dspparam.004";
-    if (SPIFFS.exists(fileName)) {
-        if (SPIFFS.remove(fileName))
-            Serial.println(fileName + F(" deleted."));
-        else
-            Serial.println("[ERROR] Deleting " + fileName);
-    }
+  //--- check for old stuff (version == 1.x.x)
+  String fileName = "/dspfw.hex";
+  if(SPIFFS.exists(fileName))
+  {
+    if( SPIFFS.remove(fileName))
+      Serial.println(fileName + " deleted.");
+    else
+      Serial.println("[ERROR] Deleting " + fileName );
+  }
+  fileName = "/dspparam.001";
+  if(SPIFFS.exists(fileName))
+  {
+    if(SPIFFS.remove(fileName))
+      Serial.println(fileName + " deleted.");
+    else
+      Serial.println("[ERROR] Deleting " + fileName);
+  }
+  fileName = "/dspparam.002";
+  if(SPIFFS.exists(fileName))
+  {
+    if(SPIFFS.remove(fileName))
+      Serial.println(fileName + F(" deleted."));
+    else
+      Serial.println("[ERROR] Deleting " + fileName);
+  }
+  fileName = "/dspparam.003";
+  if(SPIFFS.exists(fileName))
+  {
+    if(SPIFFS.remove(fileName))
+      Serial.println(fileName + " deleted.");
+    else
+      Serial.println("[ERROR] Deleting " + fileName);
+  }
+  fileName = "/dspparam.004";
+  if(SPIFFS.exists(fileName))
+  {
+    if(SPIFFS.remove(fileName))
+      Serial.println(fileName + F(" deleted."));
+    else
+      Serial.println("[ERROR] Deleting " + fileName);
+  }
 
-    Serial.print(F("Free disk space: "));
-    Serial.print((SPIFFS.totalBytes() - SPIFFS.usedBytes()) / 1024);
-    Serial.println(F("KiB"));
+  Serial.print(F("Free disk space: "));
+  Serial.print( (SPIFFS.totalBytes() - SPIFFS.usedBytes()) / 1024 );
+  Serial.println(F("KiB"));
 
-    File root = SPIFFS.open("/");
-    File file = root.openNextFile();
-    while (file) {
-        Serial.print(file.name());
-        Serial.print(F(" "));
-        Serial.print(file.size());
-        Serial.println(F(" Bytes"));
-        file = root.openNextFile();
-    }
+  File root = SPIFFS.open("/");
+  File file = root.openNextFile();
+  while(file)
+  {
+    Serial.print(file.name());
+    Serial.print(F(" "));
+    Serial.print(file.size());
+    Serial.println(F(" Bytes"));
+    file = root.openNextFile();
+  }
 
-    //----------------------------------------------------------------------------
-    //--- Read settings file
-    //----------------------------------------------------------------------------
-    readSettings();
-    changeChannelSummationADC();
-    if (changeWifiState) {
-        Serial.print(F("Changing WiFi status......"));
-        Settings.wifiOn = Settings.wifiOn ? false : true;
-        writeSettings();
-        Serial.println(F("[OK]"));
-    }
-
-    Serial.print(F("Init user parameter......"));
-    initUserParams();
+  //----------------------------------------------------------------------------
+  //--- Read settings file
+  //----------------------------------------------------------------------------
+  readSettings();
+  changeChannelSummationADC();
+  if( changeWifiState )
+  {
+    Serial.print(F("Changing WiFi status......"));
+    Settings.wifiOn = Settings.wifiOn ? false : true;
+    writeSettings();
     Serial.println(F("[OK]"));
-    readPluginMeta();
+  }
 
-    //----------------------------------------------------------------------------
-    //--- Read virtual input channel routing (only if supported by plugin)
-    //----------------------------------------------------------------------------
-    if (currentPlugInName == String(F("stereoforever"))) {
-        if (!SPIFFS.exists(F("/vinputs.txt")))
-            // if file does not exist, write it with defautl values
-            writeVirtualInputRouting();
-        else
-            readVirtualInputRouting();
-    }
+  Serial.print(F("Init user parameter......"));
+  initUserParams();
+  Serial.println(F("[OK]"));
+  readPluginMeta();
 
-    readChannelNames();
+  //----------------------------------------------------------------------------
+  //--- Read virtual input channel routing (only if supported by plugin)
+  //----------------------------------------------------------------------------
+  if(currentPlugInName == String(F("stereoforever")) || currentPlugInName == String(F("The Room")))
+  {
+    if(!SPIFFS.exists(F("/vinputs.txt")))
+      // if file does not exist, write it with defautl values
+      writeVirtualInputRouting();
+    else
+      readVirtualInputRouting();
+  }
 
-    //----------------------------------------------------------------------------
-    //--- Configure AddOn
-    //----------------------------------------------------------------------------
-    updateAddOn();
+  readChannelNames();
 
-    //----------------------------------------------------------------------------
-    //--- Upload program to DSP
-    //----------------------------------------------------------------------------
-    uploadDspFirmware();
+  //----------------------------------------------------------------------------
+  //--- Configure AddOn
+  //----------------------------------------------------------------------------
+  updateAddOn();
 
-    //----------------------------------------------------------------------------
-    //--- Upload user parameters to DSP
-    //----------------------------------------------------------------------------
-    uploadUserParams();
+  //----------------------------------------------------------------------------
+  //--- Upload program to DSP
+  //----------------------------------------------------------------------------
+  uploadDspFirmware();
 
-    //----------------------------------------------------------------------------
-    //--- Configure Webserver
-    //----------------------------------------------------------------------------
-    setupWebserver();
+  //----------------------------------------------------------------------------
+  //--- Upload user parameters to DSP
+  //----------------------------------------------------------------------------
+  uploadUserParams();
 
-    //----------------------------------------------------------------------------
-    //--- Configure ESP for WiFi access
-    //----------------------------------------------------------------------------
-    // Create a connection task with 8kB stack on core 0
-    if (Settings.wifiOn)
-        xTaskCreatePinnedToCore(myWiFiTask, "myWiFiTask", 8192, NULL, 3, NULL, 0);
+  //----------------------------------------------------------------------------
+  //--- Configure Webserver
+  //----------------------------------------------------------------------------
+  setupWebserver();
 
-    //----------------------------------------------------------------------------
-    //--- Enable Volume Potentiometer
-    //----------------------------------------------------------------------------
-    enableVolPot();
+  //----------------------------------------------------------------------------
+  //--- Configure ESP for WiFi access
+  //----------------------------------------------------------------------------
+  // Create a connection task with 8kB stack on core 0
+  if( Settings.wifiOn )
+    xTaskCreatePinnedToCore(myWiFiTask, "myWiFiTask", 8192, NULL, 3, NULL, 0);
 
-    //----------------------------------------------------------------------------
-    //--- Init IR Receiver
-    //----------------------------------------------------------------------------
-#if HAVE_IRRECEIVER
-    irReceiver.enableIRIn();
-#endif
+  //----------------------------------------------------------------------------
+  //--- Enable Volume Potentiometer
+  //----------------------------------------------------------------------------
+  enableVolPot();
 
-    resetDAC(false);
+  //----------------------------------------------------------------------------
+  //--- Init IR Receiver
+  //----------------------------------------------------------------------------
+  #if HAVE_IRRECEIVER
+  irReceiver.enableIRIn();
+  #endif
 
-    updateUI();
+  if(currentPlugInName == String(F("stereoforever")) || currentPlugInName == String(F("The Room")))
+    setVirtualInput();
 
-    lastREsw = rotaryEncoder.getSwitchValue();
-    lastREval = rotaryEncoder.getRotationValue();
+  resetDAC(false);
 
-#if DEBUG_PRINT
-    Serial.print("Heap: ");
-    Serial.println(xPortGetFreeHeapSize());
-#endif
+  updateUI();
+
+  lastREsw = rotaryEncoder.getSwitchValue();
+  lastREval = rotaryEncoder.getRotationValue();
+
+  #if DEBUG_PRINT
+  Serial.print("Heap: ");
+  Serial.println(xPortGetFreeHeapSize());
+  #endif
 
     // ---- CUSTOM -----
     digitalWrite(TRIGGER_STATE_IO, HIGH);
@@ -590,7 +632,7 @@ void loop() {
         if(editMode > 1)
           editMode = 0;
       }
-
+      
       delay(300);
       needUpdateUI = true;
     }
@@ -641,57 +683,86 @@ void loop() {
 
       prev_preset();
 
-            lastREval = rotaryEncoder.getRotationValue();
-            needUpdateUI = true;
-        } else if (editMode == 2) {
-            if (currentPlugInName == String(F("stereoforever"))) {
-                decrementVirtualInput();
-                softMuteDAC();
-                updateUI();
-                softUnmuteDAC();
-                lastREval = rotaryEncoder.getRotationValue();
-                needUpdateUI = true;
-            }
-        }
+      lastREval = rotaryEncoder.getRotationValue();
+      needUpdateUI = true;
     }
-#endif
+    else if(editMode == 2)
+    {
+      if(currentPlugInName == String(F("stereoforever")))
+      {
+        decrementVirtualInput();
+        softMuteDAC();
+        updateUI();
+        softUnmuteDAC();
+        lastREval = rotaryEncoder.getRotationValue();
+        needUpdateUI = true;
+      }
+    }
+  }
+  #endif
 
   #if HAVE_IRRECEIVER
   decode_results irResults;
   if( irReceiver.decode( &irResults ) )
   {
-      // Serial.println(irResults.value, HEX);
+    Serial.println(irResults.value, HEX);
 
-      // If the IR repeat code is sent (the user is long-pressing a button), the previous IR code will be written
-      // to the current IR value.
-      if (irResults.value == REMOTE_REPEAT_CODE) {
-          irResults.value = irPrevious;
-      }
+    // If the IR repeat code is sent (the user is long-pressing a button), the previous IR code will be written
+    // to the current IR value.
+    if (irResults.value == REMOTE_REPEAT_CODE) {
+      irResults.value = irPrevious;
+    }
 
-    if( irResults.value == APPLE_REMOTE_UP )
+    uint32_t irval = (irResults.value & 0x0000ff00) >> 8;
+    if((irval == APPLE_A_REMOTE_UP) || (irval == APPLE_B_REMOTE_UP))
     {
       increase_volume();
       needUpdateUI = true;
     }
-    else if( irResults.value == APPLE_REMOTE_DOWN )
+    else if((irval == APPLE_A_REMOTE_DOWN) || (irval == APPLE_B_REMOTE_DOWN))
     {
       decrease_volume();
       needUpdateUI = true;
     }
-    else if( irResults.value == APPLE_REMOTE_LEFT )
+    if(currentPlugInName == String(F("stereoforever")) || currentPlugInName == String(F("The Room")))
     {
-      myDisplay.drawSwitchingPreset();
+      if((irval == APPLE_A_REMOTE_LEFT) || (irval == APPLE_B_REMOTE_LEFT))
+      {
+        decrementVirtualInput();
+        setVirtualInput();
+        needUpdateUI = true;
+      }
+      else if((irval == APPLE_A_REMOTE_RIGHT) || (irval == APPLE_B_REMOTE_RIGHT))
+      {
+        incrementVirtualInput();
+        setVirtualInput();
+        needUpdateUI = true;
+      }
+      else if((irval == APPLE_A_REMOTE_MENU) || (irval == APPLE_B_REMOTE_MENU))
+      {
+        myDisplay.drawSwitchingPreset();
+        next_preset();
+        needUpdateUI = true;
+      }
+    }
+    else
+    {
+      if((irval == APPLE_A_REMOTE_LEFT) || (irval == APPLE_B_REMOTE_LEFT))
+      {
+        myDisplay.drawSwitchingPreset();
+        prev_preset();
+        needUpdateUI = true;
+      }
+      else if((irval == APPLE_A_REMOTE_RIGHT) || (irval == APPLE_B_REMOTE_RIGHT))
+      {
+        myDisplay.drawSwitchingPreset();
+        next_preset();
+        needUpdateUI = true;
+      }
+    }
 
-      prev_preset();
-
-            needUpdateUI = true;
-        } else if (irResults.value == APPLE_REMOTE_RIGHT) {
-            myDisplay.drawSwitchingPreset();
-
-      next_preset();
-
-            needUpdateUI = true;
-        // ----------- CUSTOM ----------------
+    /*
+     * // ----------- CUSTOM ----------------
         } else if (irResults.value == APPLE_REMOTE_PLAY_DOWN) {
             myDisplay.displayOn();
             digitalWrite(TRIGGER_STATE_IO, HIGH);
@@ -702,17 +773,20 @@ void loop() {
             myDisplay.displayOff();
             displayOff = true;
         }
+     */
 
-      //Serial.println(irResults.value, HEX);
+    //else
+    //  Serial.println(irResults.value, HEX);
 
-        irPrevious = irResults.value;
-        irReceiver.resume();
-    }
-#endif
+    irPrevious = irResults.value;
+    irReceiver.resume();
+  }
+  #endif
 
-    if (needUpdateUI) {
-        updateUI();
-        needUpdateUI = false;
-    }
+  if( needUpdateUI )
+  {
+    updateUI();
+    needUpdateUI = false;
+  }
 
 }
