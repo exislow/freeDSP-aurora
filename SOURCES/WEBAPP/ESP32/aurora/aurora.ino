@@ -330,6 +330,10 @@ void setup()
   Serial.println(xPortGetFreeHeapSize());
   #endif
 
+    // ---- CUSTOM -----
+    pinMode(TRIGGER_STATE_IO, OUTPUT);
+    digitalWrite(TRIGGER_STATE_IO, LOW);
+
   //----------------------------------------------------------------------------
   //--- Init Rotary Encoder Handling
   //----------------------------------------------------------------------------
