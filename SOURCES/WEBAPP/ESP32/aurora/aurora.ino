@@ -759,10 +759,7 @@ void loop() {
         next_preset();
         needUpdateUI = true;
       }
-    }
-
-    /*
-     * // ----------- CUSTOM ----------------
+      // ----------- CUSTOM ----------------
         } else if (irResults.value == APPLE_REMOTE_PLAY_DOWN) {
             myDisplay.displayOn();
             digitalWrite(TRIGGER_STATE_IO, HIGH);
@@ -773,7 +770,7 @@ void loop() {
             myDisplay.displayOff();
             displayOff = true;
         }
-     */
+    }
 
     //else
     //  Serial.println(irResults.value, HEX);

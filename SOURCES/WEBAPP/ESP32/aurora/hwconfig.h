@@ -38,6 +38,8 @@
 #define IR_RECEIVER_PIN 5
 #endif
 
+#define REMOTE_REPEAT_CODE       0xFFFFFFFF
+
 #define APPLE_A_REMOTE_LEFT        0x10
 #define APPLE_A_REMOTE_RIGHT       0xE0
 #define APPLE_A_REMOTE_UP          0xD0
